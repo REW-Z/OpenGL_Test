@@ -37,10 +37,10 @@ void main(void)
 	vec3 N = normalize(varyingNormal);
 	vec3 L = normalize((v_matrix * vec4(-light.dir, 0.0)).xyz);
 	vec3 V = normalize(-varyingPos);
-	vec3 R = normalize(reflect(-L, N));
+	vec3 H = normalize(L + V);
 
 	vec3 diffuse = light.color.xyz * material.diffuse.xyz * max(0.0, dot(N, L));
-	vec3 specular = light.color.xyz * material.specular.xyz * pow(max(0.0, dot(R, V)), material.gloss); 
+	vec3 specular = light.color.xyz * material.specular.xyz * pow(max(0.0, dot(H, N)), material.gloss); 
 
 
 	color = texture(samp, uv) * vec4((ambient.xyz + diffuse + specular), 1.0); 

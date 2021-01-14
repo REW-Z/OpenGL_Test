@@ -270,22 +270,19 @@ void display(GLFWwindow * window, double currentTime)
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glUniformMatrix4fv(nLoc, 1, GL_FALSE, glm::value_ptr(invTrMat));
-	/*glUniform4fv(ambLoc, 1, glm::value_ptr(ambientColor));
+	glUniform4fv(ambLoc, 1, glm::value_ptr(ambientColor));
 	glUniform4fv(dirLightColorLoc, 1, glm::value_ptr(lightColor));
 	glUniform3fv(dirLightDirLoc, 1, glm::value_ptr(lightDir));
 	glUniform4fv(mDiffLoc, 1, glm::value_ptr(materialDiff));
 	glUniform4fv(mSpecLoc, 1, glm::value_ptr(materialSpec));
-	glUniform1fv(mGlosLoc, 1, &materialGloss);*/
+	glUniform1fv(mGlosLoc, 1, &materialGloss);
 	
-	glProgramUniform4fv(renderingProgram, ambLoc, 1, glm::value_ptr(ambientColor));
+	/*glProgramUniform4fv(renderingProgram, ambLoc, 1, glm::value_ptr(ambientColor));
 	glProgramUniform4fv(renderingProgram, dirLightColorLoc, 1, glm::value_ptr(lightColor));
 	glProgramUniform3fv(renderingProgram, dirLightDirLoc, 1, glm::value_ptr(lightDir));
 	glProgramUniform4fv(renderingProgram, mDiffLoc, 1, glm::value_ptr(materialDiff));
 	glProgramUniform4fv(renderingProgram, mSpecLoc, 1, glm::value_ptr(materialSpec));
-	glProgramUniform1fv(renderingProgram, mGlosLoc, 1, &materialGloss);
-
-
-	
+	glProgramUniform1fv(renderingProgram, mGlosLoc, 1, &materialGloss);*/
 
 
 
