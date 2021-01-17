@@ -16,6 +16,7 @@ struct Material
 in vec3 varyingPos;
 in vec3 varyingNormal;
 in vec2 uv;
+in vec4 shadow_coord;
 
 out vec4 color;
 
@@ -25,12 +26,16 @@ uniform mat4 v_matrix;
 uniform mat4 mv_matrix;
 uniform mat4 proj_matrix;
 uniform mat4 norm_matrix;
+uniform mat4 shadowMVP;
 
 uniform vec4 ambient;
 uniform DirectionalLight light;
 uniform Material material;
 
-layout(binding = 0) uniform sampler2D samp;
+layout(binding = 0) uniform sampler2DShadow shadowTex;
+layout(binding = 1) uniform sampler2D samp;
+layout(binding = 2) uniform sampler2D samp2;
+
 
 void main(void)
 {
@@ -39,9 +44,17 @@ void main(void)
 	vec3 V = normalize(-varyingPos);
 	vec3 H = normalize(L + V);
 
+	float inShadow = textureProj(shadowTex, shadow_coord);
+
 	vec3 diffuse = light.color.xyz * material.diffuse.xyz * max(0.0, dot(N, L));
 	vec3 specular = light.color.xyz * material.specular.xyz * pow(max(0.0, dot(H, N)), material.gloss); 
 
-
-	color = texture(samp, uv) * vec4((ambient.xyz + diffuse + specular), 1.0); 
+	if (inShadow != 0.0)
+	{
+		color = texture(samp, uv) * vec4((ambient.xyz + diffuse + specular), 1.0); 
+	}
+	else
+	{
+		color = texture(samp, uv) * vec4((ambient.xyz), 1.0); 
+	}
 }
