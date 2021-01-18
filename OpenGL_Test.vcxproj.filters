@@ -24,6 +24,12 @@
     <ClCompile Include="Utils.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="GameObject.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Component.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.hpp">
@@ -32,13 +38,16 @@
     <ClInclude Include="Light.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Component.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="Model.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Utils.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="GameObject.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Component.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

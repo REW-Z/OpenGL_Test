@@ -79,7 +79,7 @@ public:
 
 
 //-----------------------class define-----------------------
-class IndexlessMesh
+class IndexlessMesh: public Component
 {
 protected:
 	int numVertices;
@@ -87,15 +87,19 @@ protected:
 	std::vector<glm::vec2> texCoords;
 	std::vector<glm::vec3> normalVecs;
 public:
+	int tid();
 	IndexlessMesh();
 	IndexlessMesh(const char *filePath);
+
+	int bufferId;
+
 	int getNumVertices();
 	std::vector<glm::vec3> getVertices();
 	std::vector<glm::vec2> getTextureCoords();
 	std::vector<glm::vec3> getNormals();
 };
 
-class Mesh
+class Mesh: public Component
 {
 protected:
 	int numVertices;
@@ -105,8 +109,12 @@ protected:
 	std::vector<int> inds;
 	std::vector<MeshPart> meshParts;
 public:
+	int tid();
 	Mesh();
 	Mesh(const char *filePath);
+
+	int bufferId;
+
 	int getNumVertices();
 	std::vector<glm::vec3> getVertices();
 	std::vector<glm::vec2> getTextureCoords();

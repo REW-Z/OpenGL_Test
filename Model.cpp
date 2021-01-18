@@ -13,6 +13,7 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include "Component.h"
 #include "Model.h"
 #include "Utils.h"
 using namespace std;
@@ -310,7 +311,15 @@ std::vector<MeshPart> ModelImporter::getMeshParts() { return meshParts; }
 
 
 
-IndexlessMesh::IndexlessMesh() {}
+int IndexlessMesh::tid()
+{
+	return 2;
+}
+
+IndexlessMesh::IndexlessMesh() 
+{
+	bufferId = -1;
+}
 
 IndexlessMesh::IndexlessMesh(const char *filePath)
 {
@@ -327,6 +336,8 @@ IndexlessMesh::IndexlessMesh(const char *filePath)
 		texCoords.push_back(glm::vec2(tcs[i * 2], tcs[i * 2 + 1]));
 		normalVecs.push_back(glm::vec3(normals[i * 3], normals[i * 3 + 1], normals[i * 3 + 2]));
 	}
+
+	bufferId = -1;
 }
 
 int IndexlessMesh::getNumVertices() { return numVertices; }
@@ -336,7 +347,15 @@ std::vector<glm::vec3> IndexlessMesh::getNormals() { return normalVecs; }
 
 //------------------------------------------------------------------------------
 
-Mesh::Mesh() {}
+int Mesh::tid()
+{
+	return 2;
+}
+
+Mesh::Mesh() 
+{
+	bufferId = -1;
+}
 
 Mesh::Mesh(const char * filePath)
 {
@@ -358,6 +377,8 @@ Mesh::Mesh(const char * filePath)
 	}
 	inds = modelImporter.getInds();
 	meshParts = modelImporter.getMeshParts();
+
+	bufferId = -1;
 }
 
 int Mesh::getNumVertices() { return numVertices; }
