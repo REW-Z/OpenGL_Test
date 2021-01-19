@@ -52,18 +52,24 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="MyFragShader.glsl">
-      <Filter>源文件</Filter>
-    </Text>
-    <Text Include="MyVertShader.glsl">
-      <Filter>源文件</Filter>
-    </Text>
     <Text Include="shadowVertShader.glsl">
+      <Filter>源文件</Filter>
+    </Text>
+    <Text Include="BlinnPhongVertShader.glsl">
+      <Filter>源文件</Filter>
+    </Text>
+    <Text Include="BlinnPhongFragShader.glsl">
       <Filter>源文件</Filter>
     </Text>
   </ItemGroup>
   <ItemGroup>
     <None Include="shadowFragShader.glsl">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="CubemapVertShader.glsl">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="CubemapFragShader.glsl">
       <Filter>源文件</Filter>
     </None>
   </ItemGroup>

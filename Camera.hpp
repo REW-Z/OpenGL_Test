@@ -22,6 +22,7 @@ public:
 	float fov;
 
 	mat4 GetMatrixV();
+	mat4 glmGetMatrixV();
 	mat4 GetMatrixP();
 	mat4 GetMatrixVP();
 };
@@ -63,6 +64,13 @@ mat4 Camera::GetMatrixV()
 	mat4 mV = mRview * mTview;
 
 	return mV;
+}
+
+mat4 Camera::glmGetMatrixV()
+{
+	mat4 m = lookAt(e, e + g, vec3(0.0f, 1.0f, 0.0f));
+
+	return m;
 }
 
 

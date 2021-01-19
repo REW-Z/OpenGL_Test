@@ -1,5 +1,5 @@
 ﻿
-
+#include <ctime>
 #include <typeinfo>
 #include <GL\glew.h>
 #include <GLFW\glfw3.h>
@@ -22,6 +22,14 @@
 #include "GameObject.h"
 using namespace std;
 
+#define WINDOW_WIDTH 1280
+#define WINDOW_HEIGHT 720
+
+#define GAME_TIME_SCALE 0.01f
+
+int debug_count;
+clock_t startTime, endTime;
+
 
 //----------------------Pass----------------------
 void passOne(void);
@@ -36,14 +44,16 @@ bool keydown_W;
 bool keydown_S;
 bool keydown_A;
 bool keydown_D;
+bool keydown_Q;
+bool keydown_E;
 
 
 
 //----------------------顶点数组对象和顶点缓冲区----------------------
 #define numVAOs 1
-#define numMaxMeshes 99
+#define numMaxMeshes 100
 #define numVBOs 4
-GLuint renderingProgram1, renderingProgram2;//声明渲染程序对象
+GLuint renderingProgramCubemap, renderingProgram1, renderingProgram2;//声明渲染程序对象
 GLuint vao[numVAOs];
 GLuint vbo[numMaxMeshes][numVBOs];
 
@@ -54,7 +64,7 @@ Camera cam;
 
 //----------------------光源属性（环境光+方向光）----------------------
 
-vec4 ambientColor;
+vec4 envionmentAmbient;
 DirectionalLight light;
 
 //----------------------物体和模型----------------------
@@ -64,6 +74,7 @@ list<GameObject *> gamesObjects;
 
 //----------------------纹理图像----------------------
 GLuint tex1, tex2;
+GLuint texSkybox;
 GLuint texEmpty;
 
 
@@ -75,8 +86,9 @@ glm::vec3 up(0.0f, 1.0f, 0.0f);
 //----------------------dislay变量空间----------------------
 //(不要在渲染过程display中分配)
 GLuint mLoc, vLoc, mvLoc, projLoc, nLoc, sLoc;
-GLuint ambLoc, dirLightDirLoc, dirLightColorLoc, mDiffLoc, mSpecLoc, mGlosLoc;
+GLuint envAmbLoc, dirLightDirLoc, dirLightColorLoc, mAmbLoc, mDiffLoc, mSpecLoc, mNsLoc;
 int width, height;
+GLuint widthLoc, heightLoc;
 float aspect;
 glm::mat4 mMat, vMat, mvMat, pMat, invTrMat;
 
@@ -105,7 +117,7 @@ float materialGloss = 100.0f;//光泽度
 void sceneInit()
 {
 	//光源
-	ambientColor = vec4(0.1f, 0.1f, 0.1f, 1.0f);
+	envionmentAmbient = vec4(0.2f, 0.2f, 0.2f, 1.0f);
 	light.dir = normalize(vec3(1.0f, -1.0f, 1.0f));
 	light.color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
@@ -117,16 +129,19 @@ void sceneInit()
 	GameObject * obj0 = new GameObject();
 	obj0->addComponent(&(meshes[0]));
 	obj0->name = "Object0";
-	obj0->transform->position = vec3(0.0f, 3.0f, 0.0f);
-	obj0->transform->scale = vec3(0.25f, 0.25f, 0.25f);
 	
 	GameObject * obj1 = new GameObject();
 	obj1->addComponent(&(meshes[1]));
 	obj1->name = "Object1";
 
+	GameObject * obj2 = new GameObject();
+	obj2->addComponent(&(meshes[2]));
+	obj2->name = "Object2";
+
 
 	gamesObjects.push_back(obj0);
 	gamesObjects.push_back(obj1);
+	gamesObjects.push_back(obj2);
 
 }
 
@@ -139,15 +154,9 @@ void sceneInit()
 void update()
 {
 	//光源旋转
-	mat4 rotM = rotate(mat4(1.0f), 0.002f, up);
+	mat4 rotM = rotate(mat4(1.0f), 0.001f * GAME_TIME_SCALE , up);
 	light.dir = rotM * vec4(light.dir, 0.0f);
 
-	//*物体旋转
-	for (list<GameObject *>::iterator it = gamesObjects.begin(); it != gamesObjects.end(); it++)
-	{
-		vec3 rot = (*(*it)).transform->rotation;
-		//(*(*it)).transform->rotation = vec3(rot.x + 0.01f, rot.y + 0.01f, rot.z);
-	}
 
 	//移动控制
 	if (keydown_W)
@@ -165,6 +174,14 @@ void update()
 	if (keydown_D)
 	{
 		cam.e += normalize(cam.gxt()) * 0.1f;
+	}
+	if (keydown_Q)
+	{
+		cam.e -= normalize(cam.t) * 0.1f;
+	}
+	if (keydown_E)
+	{
+		cam.e += normalize(cam.t) * 0.1f;
 	}
 
 	mat4 rotMatX;
@@ -202,6 +219,12 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		case GLFW_KEY_D:
 			keydown_D = true;
 			break;
+		case GLFW_KEY_Q:
+			keydown_Q = true;
+			break;
+		case GLFW_KEY_E:
+			keydown_E = true;
+			break;
 		default:
 			break;
 		}
@@ -221,6 +244,12 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 			break;
 		case GLFW_KEY_D:
 			keydown_D = false;
+			break;
+		case GLFW_KEY_Q:
+			keydown_Q = false;
+			break;
+		case GLFW_KEY_E:
+			keydown_E = false;
 			break;
 		default:
 			break;
@@ -246,14 +275,40 @@ static void curse_poscallback(GLFWwindow *window, double x, double y)
 void importMeshes()
 {
 	//预先读取模型和贴图数据
-	Mesh mesh("C:\\Users\\dell-pc\\Desktop\\untitled.obj");
-	meshes.push_back(mesh);
-	Mesh mesh2("C:\\Users\\dell-pc\\Desktop\\test.obj");
+	Mesh mesh1("Resources\\plane.obj");
+	meshes.push_back(mesh1);
+	Mesh mesh2("Resources\\test.obj");
 	meshes.push_back(mesh2);
+	Mesh mesh3("Resources\\cubes.obj");
+	meshes.push_back(mesh3);
 }
 
 void setupVertexBuffers()
 {
+	//天空盒网格
+	float cubeVertexPositions[108] =
+	{ -1.0f,  1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f, 1.0f,  1.0f, -1.0f, -1.0f,  1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f, 1.0f, -1.0f,  1.0f, 1.0f,  1.0f, -1.0f,
+		1.0f, -1.0f,  1.0f, 1.0f,  1.0f,  1.0f, 1.0f,  1.0f, -1.0f,
+		1.0f, -1.0f,  1.0f, -1.0f, -1.0f,  1.0f, 1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f, -1.0f,  1.0f,  1.0f, 1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f, -1.0f, -1.0f, -1.0f, -1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f, -1.0f,  1.0f, -1.0f, -1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,  1.0f, -1.0f,  1.0f,  1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f, 1.0f,  1.0f, -1.0f, 1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f, -1.0f,  1.0f,  1.0f, -1.0f,  1.0f, -1.0f
+	};
+	glGenVertexArrays(1, vao);
+	glBindVertexArray(vao[0]);
+	glGenBuffers(numVBOs, vbo[99]);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[99][0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertexPositions), cubeVertexPositions, GL_STATIC_DRAW);
+
+
+	//其他网格
 	for (size_t i = 0; i < meshes.size(); i++)
 	{
 		std::vector<int> inds = meshes[i].getIndicates();
@@ -331,11 +386,15 @@ void setupShadowBuffers(GLFWwindow* window)
 void init(GLFWwindow * window) 
 { 
 	//默认纹理
-	texEmpty = loadTexture("C:\\Users\\dell-pc\\Desktop\\default.jpg");
+	texSkybox = loadCubeMap("Resources\\cubeMap");
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);//开启无缝
+
+	texEmpty = loadTexture("Resources\\default.jpg");
 	tex1 = texEmpty; tex2 = texEmpty;
 	//指定渲染程序
+	renderingProgramCubemap = createShaderProgram("CubemapVertShader.glsl", "CubemapFragShader.glsl");
 	renderingProgram1 = createShaderProgram("shadowVertShader.glsl", "shadowFragShader.glsl");
-	renderingProgram2 = createShaderProgram("MyVertShader.glsl", "MyFragShader.glsl");
+	renderingProgram2 = createShaderProgram("BlinnPhongVertShader.glsl", "BlinnPhongFragShader.glsl");
 	//设置缓冲区
 	importMeshes();//载入模型
 	setupVertexBuffers();//顶点缓冲区
@@ -349,7 +408,6 @@ void init(GLFWwindow * window)
 	cam.fov = 60.0f;
 
 	sceneInit();
-	//TEST
 }
 
 //渲染
@@ -363,11 +421,35 @@ void display(GLFWwindow * window, double currentTime)
 	glClear(GL_COLOR_BUFFER_BIT); //GL_COLOR_BUFFER_BIT包含了渲染后像素的颜色缓冲区。
 	glClear(GL_DEPTH_BUFFER_BIT);
 
+	//********** 天空盒 *********************************
+	glUseProgram(renderingProgramCubemap);
+
+	vMat = cam.GetMatrixV();
+
+	vLoc = glGetUniformLocation(renderingProgramCubemap, "v_matrix");
+	glUniformMatrix4fv(vLoc, 1, GL_FALSE, glm::value_ptr(vMat));
+
+	projLoc = glGetUniformLocation(renderingProgramCubemap, "p_matrix");
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[99][0]);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, texSkybox);
+
+	glEnable(GL_CULL_FACE);
+	glFrontFace(GL_CCW);	// cube is CW, but we are viewing the inside
+	glDisable(GL_DEPTH_TEST);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glEnable(GL_DEPTH_TEST);
+	//****************************************************
+	
 
 	//光源空间的变换矩阵构建
 	lightVmatrix = glm::lookAt(cam.e, cam.e + light.dir, up);
 	lightPmatrix = glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, -20.0f, 20.0f);
-
 
 	//**********  PASS 1  ******************************
 	//使用自定义的阴影帧缓冲区，并把阴影纹理附着在上面
@@ -378,7 +460,7 @@ void display(GLFWwindow * window, double currentTime)
 	glDrawBuffer(GL_NONE);		//关闭绘制颜色
 	glEnable(GL_DEPTH_TEST);		//开启深度测试
 	glEnable(GL_POLYGON_OFFSET_FILL);	// 开启深度偏移
-	glPolygonOffset(2.0f, 4.0f);		//  深度偏移
+	glPolygonOffset(1.0f, 2.0f);		//  深度偏移
 
 	passOne();
 
@@ -391,11 +473,6 @@ void display(GLFWwindow * window, double currentTime)
 
 	glActiveTexture(GL_TEXTURE0);			//纹理单元0-绑定阴影纹理
 	glBindTexture(GL_TEXTURE_2D, shadowTex);
-	//已移到Pass中。。。
-	//glActiveTexture(GL_TEXTURE1);			//纹理单元1-绑定物体漫反射贴图
-	//glBindTexture(GL_TEXTURE_2D, tex1);
-	//glActiveTexture(GL_TEXTURE2);			//纹理单元1-绑定物体法线贴图
-	//glBindTexture(GL_TEXTURE_2D, tex2);
 
 
 	glDrawBuffer(GL_FRONT);//重新开启绘制颜色
@@ -434,19 +511,12 @@ void passOne(void)
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 			glEnableVertexAttribArray(0);
 
+			
 
-			//glDrawArrays(GL_TRIANGLES, 0, myModel.getNumVertices());
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[mesh->bufferId][3]);
-			size_t partCounts = mesh->getMeshParts().size();
-			for (size_t j = 0; j < partCounts; j++)
-			{
-				size_t lastCount = 0;
-				lastCount += (j == 0 ? 0 : mesh->getMeshParts()[j - 1].inds.size());
-				glDrawElements(GL_TRIANGLES, mesh->getMeshParts()[j].inds.size(), GL_UNSIGNED_INT, (void *)(4 * lastCount));
-				glDrawElements(GL_TRIANGLES, mesh->getNumIndicates(), GL_UNSIGNED_INT, (void*)(4 * lastCount));
-			}
+			
+			glDrawElements(GL_TRIANGLES, mesh->getNumIndicates(), GL_UNSIGNED_INT, 0);// 渲染阴影不区分材质、部分
 		}
-		
 
 	}
 }
@@ -465,13 +535,14 @@ void passTwo(void)
 
 	for (list<GameObject *>::iterator it = gamesObjects.begin(); it != gamesObjects.end(); it++)
 	{
+
 		GameObject * gameObject = *it;
 		if (gameObject->getComponent(enum_mesh) != nullptr)
 		{
 			Mesh * mesh = dynamic_cast<Mesh *>(gameObject->getComponent(enum_mesh));
 
+
 			// 绘制当前模型
-			vMat = cam.GetMatrixV();
 			mMat = gameObject->transform->getMatrixM();
 			mvMat = vMat * mMat;
 			invTrMat = transpose(inverse(mvMat));//逆转置矩阵
@@ -485,12 +556,13 @@ void passTwo(void)
 			sLoc = glGetUniformLocation(renderingProgram2, "shadowMVP");
 
 
-			ambLoc = glGetUniformLocation(renderingProgram2, "ambient");
+			envAmbLoc = glGetUniformLocation(renderingProgram2, "env_ambient");
 			dirLightDirLoc = glGetUniformLocation(renderingProgram2, "light.dir");
 			dirLightColorLoc = glGetUniformLocation(renderingProgram2, "light.color");
-			mDiffLoc = glGetUniformLocation(renderingProgram2, "material.diffuse");
-			mSpecLoc = glGetUniformLocation(renderingProgram2, "material.specular");
-			mGlosLoc = glGetUniformLocation(renderingProgram2, "material.gloss");
+
+			widthLoc = glGetUniformLocation(renderingProgram2, "window_width");
+			heightLoc = glGetUniformLocation(renderingProgram2, "window_height");
+			
 
 
 			glUniformMatrix4fv(mLoc, 1, GL_FALSE, glm::value_ptr(mMat));
@@ -499,13 +571,15 @@ void passTwo(void)
 			glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 			glUniformMatrix4fv(nLoc, 1, GL_FALSE, glm::value_ptr(invTrMat));
 			glUniformMatrix4fv(sLoc, 1, GL_FALSE, glm::value_ptr(shadowMVP2));
-			glUniform4fv(ambLoc, 1, glm::value_ptr(ambientColor));
+			glUniform4fv(envAmbLoc, 1, glm::value_ptr(envionmentAmbient));
 			glUniform4fv(dirLightColorLoc, 1, glm::value_ptr(light.color));
 			glUniform3fv(dirLightDirLoc, 1, glm::value_ptr(light.dir));
-			glUniform4fv(mDiffLoc, 1, glm::value_ptr(materialDiff));
-			glUniform4fv(mSpecLoc, 1, glm::value_ptr(materialSpec));
-			glUniform1fv(mGlosLoc, 1, &materialGloss);
 
+			glUniform1iv(widthLoc, 1, &width);
+			glUniform1iv(heightLoc, 1, &height);
+
+			
+			//事实上我们还是可以在glUseProgram之外绑定数据的——乃至直接在初始化时。这得益于glProgramUniform系列函数的引入，它比起往常的glUniform要多一个参数用来接收一个ShaderProgram的ID。
 			/*glProgramUniform4fv(renderingProgram, ambLoc, 1, glm::value_ptr(ambientColor));
 			glProgramUniform4fv(renderingProgram, dirLightColorLoc, 1, glm::value_ptr(lightColor));
 			glProgramUniform3fv(renderingProgram, dirLightDirLoc, 1, glm::value_ptr(lightDir));
@@ -531,11 +605,27 @@ void passTwo(void)
 
 
 
-			//绘制
+			//激活环境纹理
+			glActiveTexture(GL_TEXTURE1);			//纹理单元1-绑定环境纹理
+			glBindTexture(GL_TEXTURE_CUBE_MAP, texSkybox);
+			//绘制前绑定索引缓冲区
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[mesh->bufferId][3]);
 			size_t partCounts = mesh->getMeshParts().size();
+			GLuint lastCount = 0;
+
 			for (size_t j = 0; j < partCounts; j++)
 			{
+				
+
+				mAmbLoc = glGetUniformLocation(renderingProgram2, "material.ambient");
+				mDiffLoc = glGetUniformLocation(renderingProgram2, "material.diffuse");
+				mSpecLoc = glGetUniformLocation(renderingProgram2, "material.specular");
+				mNsLoc = glGetUniformLocation(renderingProgram2, "material.Ns");
+				glUniform4fv(mAmbLoc, 1, glm::value_ptr(mesh->getMeshParts()[j].material.ambient));
+				glUniform4fv(mDiffLoc, 1, glm::value_ptr(mesh->getMeshParts()[j].material.diffuse));
+				glUniform4fv(mSpecLoc, 1, glm::value_ptr(mesh->getMeshParts()[j].material.specular));
+				glUniform1fv(mNsLoc, 1, &mesh->getMeshParts()[j].material.Ns);
+
 				if (mesh->getMeshParts()[j].material.hasDiffTex)
 				{
 					tex1 = mesh->getMeshParts()[j].material.textureDiffuse;
@@ -553,16 +643,17 @@ void passTwo(void)
 					tex2 = texEmpty;
 				}
 
-				glActiveTexture(GL_TEXTURE0);			//纹理单元0-绑定阴影纹理
-				glBindTexture(GL_TEXTURE_2D, shadowTex);
-				glActiveTexture(GL_TEXTURE1);			//纹理单元1-绑定物体漫反射贴图
+
+				glActiveTexture(GL_TEXTURE2);			//纹理单元2-绑定物体漫反射贴图
 				glBindTexture(GL_TEXTURE_2D, tex1);
-				glActiveTexture(GL_TEXTURE2);			//纹理单元1-绑定物体法线贴图
+				glActiveTexture(GL_TEXTURE3);			//纹理单元3-绑定物体法线贴图
 				glBindTexture(GL_TEXTURE_2D, tex2);
 
-				size_t lastCount = 0;
-				lastCount += (j == 0 ? 0 : mesh->getMeshParts()[j - 1].inds.size());
-				glDrawElements(GL_TRIANGLES, mesh->getMeshParts()[j].inds.size(), GL_UNSIGNED_INT, (void *)(4 * lastCount));
+				
+				glDrawElements(GL_TRIANGLES, (GLuint)(mesh->getMeshParts()[j].inds.size()), GL_UNSIGNED_INT, (void *)(sizeof(GLuint) * lastCount));
+				lastCount += (GLuint)(mesh->getMeshParts()[j].inds.size());
+
+				
 			}
 		}
 	}
@@ -576,7 +667,7 @@ int main(void)
 	//实例化窗口(4.3)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);//窗口选项：主版本号4
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);//窗口选项：次版本号3
-	GLFWwindow * window = glfwCreateWindow(1280, 720, "TestWindow_Chapter2", NULL, NULL);
+	GLFWwindow * window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "TestWindow_Chapter2", NULL, NULL);
 
 	//将将GLFW窗口与当前OpenGL上下文联系起来
 	glfwMakeContextCurrent(window);

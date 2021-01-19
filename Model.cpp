@@ -146,7 +146,7 @@ void ModelImporter::parseOBJ(const char *filePath)
 			mat.name = name;
 			part.material = mat;
 			meshParts.push_back(part); indexPart++;
-			pointer = &meshParts[indexPart].inds;
+			pointer = &(meshParts[indexPart].inds);
 		}
 		if (line.compare(0, 2, "f ") == 0)
 		{
@@ -273,7 +273,7 @@ void ModelImporter::parseMTL(const char *filePath)
 		if (line.compare(0, 2, "Ns") == 0)
 		{
 			float Ns = stof(line.erase(0, 2));
-			(*currentPart).material.gloss = (Ns / 1000.0f);
+			(*currentPart).material.Ns = Ns;
 		}
 		if (line.compare(0, 2, "Ni") == 0)
 		{

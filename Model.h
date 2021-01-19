@@ -1,7 +1,8 @@
 #pragma once
 #include <vector>
 
-
+//----------------------------------------------------------
+//1、推荐使用自定义的模型文件类型，提高读取速度，而不是每次都导入obj文件。
 //-----------------------class define-----------------------
 
 class Material
@@ -13,7 +14,7 @@ public:
 	glm::vec3 diffuse;
 	glm::vec3 specular;
 	glm::vec3 emission;
-	float gloss;
+	float Ns;
 
 	bool hasDiffTex;
 	bool hasBumpTex;

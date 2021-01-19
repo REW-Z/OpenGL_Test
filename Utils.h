@@ -10,4 +10,5 @@ void printShaderLog(GLuint shader);
 string readShaderSource(const char * path);
 GLuint createShaderProgram(const char * vertPath, const char * fragPath);
 GLuint loadTexture(const char * texImagePath);
+GLuint loadCubeMap(const char *mapDir);
 
