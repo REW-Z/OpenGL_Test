@@ -17,6 +17,7 @@ struct Material
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec2 texcoords;
 layout (location = 2) in vec3 normal;
+layout (location = 3) in vec3 tangent;
 
 
 
@@ -39,6 +40,7 @@ layout(binding = 3) uniform sampler2D samp2;
 
 out vec3 varyingPos;
 out vec3 varyingNormal;
+out vec3 varyingTangent;
 out vec2 uv;
 out vec4 shadow_coord;
 
@@ -46,6 +48,7 @@ void main(void)
 { 
 	varyingPos = (mv_matrix * vec4(position, 1.0)).xyz;
 	varyingNormal = (norm_matrix * vec4(normal, 1.0)).xyz;
+	varyingTangent = (norm_matrix * vec4(tangent, 1.0)).xyz;
 	shadow_coord = shadowMVP * vec4(position,1.0);
 	uv = texcoords;
 	gl_Position = proj_matrix * mv_matrix * vec4(position, 1.0);

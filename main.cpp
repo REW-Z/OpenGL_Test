@@ -1,4 +1,5 @@
-﻿
+﻿#define DEBUG
+
 #include <ctime>
 #include <typeinfo>
 #include <GL\glew.h>
@@ -28,7 +29,8 @@ using namespace std;
 #define GAME_TIME_SCALE 0.01f
 
 int debug_count;
-clock_t startTime, endTime;
+int debug_count2;
+clock_t realTime, simulationTime;
 
 
 //----------------------Pass----------------------
@@ -52,7 +54,7 @@ bool keydown_E;
 //----------------------顶点数组对象和顶点缓冲区----------------------
 #define numVAOs 1
 #define numMaxMeshes 100
-#define numVBOs 4
+#define numVBOs 5
 GLuint renderingProgramCubemap, renderingProgram1, renderingProgram2;//声明渲染程序对象
 GLuint vao[numVAOs];
 GLuint vbo[numMaxMeshes][numVBOs];
@@ -147,9 +149,12 @@ void sceneInit()
 
 #pragma endregion
 
+#pragma region UPDATE_FIXED_UPDATE_INPUT
+//FIXED UPDATE
+void fixed_update()
+{
 
-#pragma region UPDATE和控制
-
+}
 //UPDATE
 void update()
 {
@@ -316,10 +321,15 @@ void setupVertexBuffers()
 		std::vector<glm::vec3> vert = meshes[i].getVertices();
 		std::vector<glm::vec2> tex = meshes[i].getTextureCoords();
 		std::vector<glm::vec3> norm = meshes[i].getNormals();
+		std::vector<glm::vec3> tangent = meshes[i].getTangents();
+
+		cout << "tanvec count:" << tangent.size() << "  normVec count: " << norm.size() << endl;
+
 
 		std::vector<float> pvalues;
 		std::vector<float> tvalues;
 		std::vector<float> nvalues;
+		std::vector<float> tanvalues;
 
 		for (int vi = 0; vi < meshes[i].getNumVertices(); vi++)
 		{
@@ -331,6 +341,9 @@ void setupVertexBuffers()
 			nvalues.push_back((norm[vi]).x);
 			nvalues.push_back((norm[vi]).y);
 			nvalues.push_back((norm[vi]).z);
+			tanvalues.push_back((tangent[vi]).x);
+			tanvalues.push_back((tangent[vi]).y);
+			tanvalues.push_back((tangent[vi]).z);
 		}
 
 		glGenVertexArrays(1, vao);
@@ -346,7 +359,10 @@ void setupVertexBuffers()
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[i][2]);
 		glBufferData(GL_ARRAY_BUFFER, nvalues.size() * 4, &nvalues[0], GL_STATIC_DRAW);
 
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[i][3]);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[i][3]);
+		glBufferData(GL_ARRAY_BUFFER, tanvalues.size() * 4, &tanvalues[0], GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[i][4]);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, inds.size() * 4, &inds[0], GL_STATIC_DRAW);
 
 		//buffer id
@@ -385,6 +401,10 @@ void setupShadowBuffers(GLFWwindow* window)
 //初始化
 void init(GLFWwindow * window) 
 { 
+#ifdef DEBUG
+	//...
+#endif
+
 	//默认纹理
 	texSkybox = loadCubeMap("Resources\\cubeMap");
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);//开启无缝
@@ -413,9 +433,7 @@ void init(GLFWwindow * window)
 //渲染
 void display(GLFWwindow * window, double currentTime)
 {
-	//UPDATE
-	update();
-
+	
 	//清除颜色缓存和深度缓冲
 	glClearColor(0.0, 0.0, 0.0, 1.0);//设置清除色
 	glClear(GL_COLOR_BUFFER_BIT); //GL_COLOR_BUFFER_BIT包含了渲染后像素的颜色缓冲区。
@@ -513,7 +531,7 @@ void passOne(void)
 
 			
 
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[mesh->bufferId][3]);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[mesh->bufferId][4]);
 			
 			glDrawElements(GL_TRIANGLES, mesh->getNumIndicates(), GL_UNSIGNED_INT, 0);// 渲染阴影不区分材质、部分
 		}
@@ -603,13 +621,18 @@ void passTwo(void)
 			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
 			glEnableVertexAttribArray(2);
 
+			//传递顶点属性-顶点切线
+			glBindBuffer(GL_ARRAY_BUFFER, vbo[mesh->bufferId][3]);
+			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
+			glEnableVertexAttribArray(3);
+
 
 
 			//激活环境纹理
 			glActiveTexture(GL_TEXTURE1);			//纹理单元1-绑定环境纹理
 			glBindTexture(GL_TEXTURE_CUBE_MAP, texSkybox);
 			//绘制前绑定索引缓冲区
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[mesh->bufferId][3]);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[mesh->bufferId][4]);
 			size_t partCounts = mesh->getMeshParts().size();
 			GLuint lastCount = 0;
 
@@ -688,6 +711,16 @@ int main(void)
 	//update(display) //一个简单的渲染循环。
 	while (!glfwWindowShouldClose(window))
 	{
+		//FIXED UPDATE:
+		realTime = clock();
+		while (simulationTime < realTime)
+		{
+			fixed_update();
+			simulationTime += 20l;
+		}
+		//UPDATE:
+		update();
+		//DISPLAY:
 		display(window, glfwGetTime());//渲染
 		glfwSwapBuffers(window);//交换缓冲区(会等待Interval)
 		glfwPollEvents();//处理窗口事件

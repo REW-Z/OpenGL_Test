@@ -54,13 +54,14 @@ public:
 class ModelImporter
 {
 private:
-	std::vector<float> vertVals;
-	std::vector<float> stVals;
-	std::vector<float> normVals;
+	std::vector<float> rawVertVals;
+	std::vector<float> rawTexcoordsVals;
+	std::vector<float> rawNormVals;
 
 	std::vector<float> triangleVerts;
 	std::vector<float> textureCoords;
 	std::vector<float> normals;
+	std::vector<float> tangents;
 	
 	std::vector<int> inds;
 	std::vector<MeshPart> meshParts;
@@ -72,6 +73,7 @@ public:
 	std::vector<float> getVertices();
 	std::vector<float> getTextureCoordinates();
 	std::vector<float> getNormals();
+	std::vector<float> getTangents();
 	std::vector<int> getInds();
 	std::vector<MeshPart> getMeshParts();
 };
@@ -107,6 +109,7 @@ protected:
 	std::vector<glm::vec3> vertices;
 	std::vector<glm::vec2> texCoords;
 	std::vector<glm::vec3> normalVecs;
+	std::vector<glm::vec3> tangentVecs;
 	std::vector<int> inds;
 	std::vector<MeshPart> meshParts;
 public:
@@ -120,10 +123,14 @@ public:
 	std::vector<glm::vec3> getVertices();
 	std::vector<glm::vec2> getTextureCoords();
 	std::vector<glm::vec3> getNormals();
+	std::vector<glm::vec3> getTangents();
 	std::vector<int> getIndicates();
 	int getNumIndicates();
 	std::vector<MeshPart> getMeshParts();
 };
+
+//--------------------- Functions ----------------------------------
+glm::vec3 GetTangent(vec3 pos1, vec3 pos2, vec3 pos3, vec2 uv1, vec2 uv2, vec2 uv3, vec3 normal);
 
 
 

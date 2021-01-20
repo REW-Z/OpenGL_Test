@@ -16,6 +16,7 @@ struct Material
 
 in vec3 varyingPos;
 in vec3 varyingNormal;
+in vec3 varyingTangent;
 in vec2 uv;
 in vec4 shadow_coord;
 
@@ -46,9 +47,26 @@ float sampShadowTex(float ox, float oy)
 	 return textureProj(shadowTex, shadow_coord + vec4(ox * (1.0 / window_width) * shadow_coord.w, oy * (1.0 / window_height) * shadow_coord.w, -0.005, 0.0));
 }
 
+
+vec3 calcNewNormal()
+{
+	vec3 normal = normalize(varyingNormal);
+	vec3 tangent = normalize(varyingTangent);
+	tangent = normalize(tangent - dot(tangent, normal) * normal);
+	vec3 bitangent = cross(tangent, normal);
+	mat3 tbn = mat3(tangent, bitangent, normal);
+
+	vec3 retrievedNormal = texture(samp2, uv).xyz;
+	retrievedNormal = retrievedNormal * 2.0 - 1.0;
+	vec3 newNormal = tbn * retrievedNormal;
+	newNormal = normalize(newNormal);
+	return newNormal;
+}
+
+
 void main(void)
 {
-	vec3 Nview = normalize(varyingNormal);
+	vec3 Nview = calcNewNormal();
 	vec3 Lview = normalize((v_matrix * vec4(-light.dir, 0.0)).xyz);
 	vec3 Vview = normalize(-varyingPos);
 	vec3 Hview = normalize(Lview + Vview);
@@ -90,4 +108,7 @@ void main(void)
 //	{
 //		color = vec4((ambient.xyz), 1.0); 
 //	}
+	//vec3 worldTangent = normalize((vec4(varyingTangent, 0.0) * v_matrix).xyz);
+
+	//color = vec4((vec3(0.5, 0.5, 0.5) + (worldTangent * 0.5)), 1.0);
 }
