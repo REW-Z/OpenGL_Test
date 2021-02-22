@@ -25,7 +25,12 @@ using namespace std;
 
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
+//--------------------Mono-----------------------
 
+//...
+
+
+//---------------------Time----------------------
 #define GAME_TIME_SCALE 0.01f
 
 int debug_count;
@@ -464,7 +469,6 @@ void display(GLFWwindow * window, double currentTime)
 	glEnable(GL_DEPTH_TEST);
 	//****************************************************
 	
-
 	//光源空间的变换矩阵构建
 	lightVmatrix = glm::lookAt(cam.e, cam.e + light.dir, up);
 	lightPmatrix = glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, -20.0f, 20.0f);
@@ -485,6 +489,7 @@ void display(GLFWwindow * window, double currentTime)
 	glDisable(GL_POLYGON_OFFSET_FILL);	// 关闭深度偏移
 	//***************************************************
 
+	
 	//**********  PASS 2  ******************************
 	//使用显示的帧缓冲区
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -544,7 +549,6 @@ void passTwo(void)
 {
 	glUseProgram(renderingProgram2);
 
-
 	//设置
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CCW);
@@ -559,7 +563,7 @@ void passTwo(void)
 		{
 			Mesh * mesh = dynamic_cast<Mesh *>(gameObject->getComponent(enum_mesh));
 
-
+			
 			// 绘制当前模型
 			mMat = gameObject->transform->getMatrixM();
 			mvMat = vMat * mMat;
@@ -675,8 +679,6 @@ void passTwo(void)
 				
 				glDrawElements(GL_TRIANGLES, (GLuint)(mesh->getMeshParts()[j].inds.size()), GL_UNSIGNED_INT, (void *)(sizeof(GLuint) * lastCount));
 				lastCount += (GLuint)(mesh->getMeshParts()[j].inds.size());
-
-				
 			}
 		}
 	}
@@ -690,7 +692,7 @@ int main(void)
 	//实例化窗口(4.3)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);//窗口选项：主版本号4
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);//窗口选项：次版本号3
-	GLFWwindow * window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "TestWindow_Chapter2", NULL, NULL);
+	GLFWwindow * window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "REWGraphicsEngine", NULL, NULL);
 
 	//将将GLFW窗口与当前OpenGL上下文联系起来
 	glfwMakeContextCurrent(window);
@@ -711,7 +713,7 @@ int main(void)
 	//update(display) //一个简单的渲染循环。
 	while (!glfwWindowShouldClose(window))
 	{
-		//FIXED UPDATE:
+		//FIXED UPDATE:固定更新
 		realTime = clock();
 		while (simulationTime < realTime)
 		{
